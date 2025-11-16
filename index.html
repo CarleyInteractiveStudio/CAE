@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creative Animation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Creative Animation</h1>
+    </header>
+    <main>
+        <div class="main-controls">
+            <button id="create-project-btn">Crear Nuevo Proyecto</button>
+        </div>
+        <div class="projects-container">
+            <h2>Mis Proyectos</h2>
+            <div id="projects-grid">
+                <!-- Las tarjetas de los proyectos se añadirán aquí dinámicamente -->
+            </div>
+        </div>
+    </main>
+    <script src="script.js"></script>
+
+    <!-- Modal para Crear Nuevo Proyecto -->
+    <div id="create-project-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h2>Crear Nuevo Proyecto</h2>
+            <p>Elige el tipo de proyecto:</p>
+            <div class="project-types">
+                <div class="project-type-option" data-type="creative-engine">
+                    <img src="assets/creative-engine-logo.png" alt="Creative Engine">
+                    <span>Creative Engine</span>
+                </div>
+                <div class="project-type-option" data-type="video">
+                    <img src="assets/video-icon.svg" alt="Video">
+                    <span>Video</span>
+                </div>
+                <div class="project-type-option" data-type="other">
+                    <img src="assets/other-icon.svg" alt="Otro">
+                    <span>Otro</span>
+                </div>
+            </div>
+            <div class="project-name">
+                <label for="project-name-input">Nombre del Proyecto:</label>
+                <input type="text" id="project-name-input" placeholder="Mi increíble animación">
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-create-btn">Cancelar</button>
+                <button id="confirm-create-btn">Crear</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
