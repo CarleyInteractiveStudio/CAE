@@ -159,7 +159,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     resizeCanvas();
 
     // --- Línea de Tiempo ---
-    // (Esta parte no cambia)
+    const timelinePanel = document.querySelector('.timeline-panel');
+    const toggleTimelineBtn = document.getElementById('toggle-timeline-btn');
     const addFrameBtn = document.getElementById('add-frame-btn');
     const framesStrip = document.querySelector('.frames-strip');
     let frames = [];
@@ -199,5 +200,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderFrames();
     }
     addFrameBtn.addEventListener('click', addNewFrame);
+
+    toggleTimelineBtn.addEventListener('click', () => {
+        const isHidden = timelinePanel.classList.toggle('hidden');
+        toggleTimelineBtn.textContent = isHidden ? '▲' : '▼';
+    });
+
     addNewFrame();
 });
