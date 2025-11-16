@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor - Creative Animation</title>
+    <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+    <div class="editor-container">
+        <aside class="toolbar-panel">
+            <div class="tool-section">
+                <h3>Herramientas</h3>
+                <div class="tools">
+                    <button class="tool-btn selected" data-tool="brush">Pincel</button>
+                    <button class="tool-btn" data-tool="marker">Marcador</button>
+                    <button class="tool-btn" data-tool="pencil">Lápiz</button>
+                    <button class="tool-btn" data-tool="eraser">Borrador</button>
+                </div>
+            </div>
+            <div class="tool-section">
+                <h3>Propiedades</h3>
+                <div class="tool-property">
+                    <label for="brush-size">Grosor: <span id="brush-size-value">2</span></label>
+                    <input type="range" id="brush-size" min="1" max="100" value="2">
+                </div>
+                <div class="tool-property">
+                    <label for="brush-opacity">Opacidad: <span id="brush-opacity-value">1.0</span></label>
+                    <input type="range" id="brush-opacity" min="0.1" max="1" step="0.1" value="1">
+                </div>
+            </div>
+            <div class="tool-section">
+                <h3>Color</h3>
+                <input type="color" id="color-picker" value="#000000">
+                <div class="saved-colors">
+                    <h4>Paleta</h4>
+                    <div class="colors-bubble">
+                        <div id="saved-colors-grid"></div>
+                        <button id="save-color-btn">+</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <main class="canvas-container">
+            <canvas id="main-canvas"></canvas>
+        </main>
+        <footer class="timeline-panel">
+            <div class="timeline-controls">
+                <button id="add-frame-btn">Añadir Fotograma</button>
+            </div>
+            <div class="frames-strip">
+                <!-- Las previsualizaciones de los fotogramas irán aquí -->
+            </div>
+        </footer>
+    </div>
+    <script src="db.js"></script>
+    <script src="editor.js"></script>
+</body>
+</html>

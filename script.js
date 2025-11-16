@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ... (elementos del DOM)
     const createProjectBtn = document.getElementById('create-project-btn');
     const modal = document.getElementById('create-project-modal');
     const cancelBtn = document.getElementById('cancel-create-btn');
@@ -10,46 +11,44 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedProjectType = null;
     let projectsDirHandle = null;
 
-    // Función para listar y mostrar los proyectos
     async function loadProjects() {
         if (!projectsDirHandle) return;
 
-        projectsGrid.innerHTML = ''; // Limpiar la grilla
+        // Verificar permisos
+        if (await projectsDirHandle.queryPermission({ mode: 'readwrite' }) !== 'granted') {
+            console.log("Pidiendo permisos de nuevo...");
+            if (await projectsDirHandle.requestPermission({ mode: 'readwrite' }) !== 'granted') {
+                alert("No se tienen permisos para leer la carpeta de proyectos.");
+                return;
+            }
+        }
+
+        projectsGrid.innerHTML = '';
         for await (const entry of projectsDirHandle.values()) {
             if (entry.kind === 'directory') {
                 const projectCard = document.createElement('div');
                 projectCard.className = 'project-card';
-
-                const projectName = document.createElement('h3');
-                projectName.textContent = entry.name;
-
-                projectCard.appendChild(projectName);
+                const projectNameEl = document.createElement('h3');
+                projectNameEl.textContent = entry.name;
+                projectCard.appendChild(projectNameEl);
+                projectCard.addEventListener('click', () => {
+                    window.location.href = `editor.html?project=${encodeURIComponent(entry.name)}`;
+                });
                 projectsGrid.appendChild(projectCard);
             }
         }
     }
 
-    // Mostrar modal
-    createProjectBtn.addEventListener('click', () => {
-        modal.style.display = 'flex';
-    });
-
-    // Ocultar modal
+    // ... (lógica del modal)
+    createProjectBtn.addEventListener('click', () => modal.style.display = 'flex');
     function closeModal() {
         modal.style.display = 'none';
         projectTypeOptions.forEach(opt => opt.classList.remove('selected'));
         selectedProjectType = null;
         projectNameInput.value = '';
     }
-
     cancelBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
-
-    // Selección de tipo de proyecto
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     projectTypeOptions.forEach(option => {
         option.addEventListener('click', () => {
             projectTypeOptions.forEach(opt => opt.classList.remove('selected'));
@@ -58,40 +57,45 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Lógica de creación de proyecto
     confirmBtn.addEventListener('click', async () => {
         const projectName = projectNameInput.value.trim();
-
-        if (!selectedProjectType) {
-            alert('Por favor, selecciona un tipo de proyecto.');
-            return;
-        }
-        if (!projectName) {
-            alert('Por favor, introduce un nombre para el proyecto.');
+        if (!selectedProjectType || !projectName) {
+            alert('Por favor, completa todos los campos.');
             return;
         }
 
         try {
             if (!projectsDirHandle) {
+                console.log("Pidiendo carpeta por primera vez.");
                 projectsDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                await setDirectoryHandle(projectsDirHandle); // Guardar en IndexedDB
             }
 
             const projectDirHandle = await projectsDirHandle.getDirectoryHandle(projectName, { create: true });
             await projectDirHandle.getFileHandle(`${projectName}.ca`, { create: true });
 
             closeModal();
-            loadProjects(); // Recargar la lista de proyectos
+            loadProjects();
         } catch (error) {
             console.error('Error al crear el proyecto:', error);
             if (error.name !== 'AbortError') {
-                alert('No se pudo crear el proyecto. Asegúrate de dar los permisos necesarios.');
+                alert('No se pudo crear el proyecto.');
             }
         }
     });
 
-    // Intentar cargar proyectos al inicio si ya hay permisos
     async function init() {
-        // Esta funcionalidad requiere un manejo de permisos más avanzado que se puede añadir en el futuro
+        try {
+            projectsDirHandle = await getDirectoryHandle();
+            if (projectsDirHandle) {
+                console.log("Carpeta de proyectos cargada desde IndexedDB.");
+                loadProjects();
+            } else {
+                console.log("No se encontró una carpeta de proyectos guardada.");
+            }
+        } catch (error) {
+            console.error("Error al inicializar:", error);
+        }
     }
 
     init();
