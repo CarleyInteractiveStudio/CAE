@@ -22,6 +22,7 @@ body {
     flex-direction: column;
     gap: 2rem;
     flex-shrink: 0;
+    overflow-y: auto;
 }
 
 .canvas-container {
@@ -34,9 +35,35 @@ body {
     position: relative; /* Para anclar el panel flotante */
 }
 
+.canvas-wrapper {
+    position: relative;
+    width: 700px;
+    height: 700px;
+}
+
+#main-canvas, #guide-canvas, #onion-skin-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
 #main-canvas {
-    background-color: white;
+    background-color: transparent; /* Make background transparent to see onion skin */
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    z-index: 2;
+}
+
+#guide-canvas {
+    z-index: 3;
+    pointer-events: none;
+}
+
+#onion-skin-canvas {
+    background-color: white; /* The visible background is now on this canvas */
+    z-index: 1;
+    pointer-events: none;
 }
 
 .timeline-panel {
@@ -110,3 +137,99 @@ body {
 .timeline-controls button { background-color: #444; border: 1px solid #555; color: #f0f0f0; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
 .frame-preview.selected { border-color: #007aff; }
 .frame-preview img { width: 100%; height: 100%; object-fit: contain; }
+
+/* Estilos para el nuevo botón y controles */
+.tool-section button {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #444;
+    border: 1px solid #555;
+    color: #f0f0f0;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 1rem;
+}
+
+.onion-skin-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.onion-skin-controls label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+/* Estilos para el Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: #2c2c2c;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    width: 90%;
+    max-width: 400px;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+}
+
+.modal-inputs {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin: 1.5rem 0;
+}
+
+.modal-inputs label {
+    flex-shrink: 0;
+}
+
+.modal-inputs input {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: #1a1a1a;
+    border: 1px solid #444;
+    color: #f0f0f0;
+    border-radius: 4px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.modal-actions button {
+    padding: 0.5rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.modal-actions button#save-size-btn {
+    background-color: #007aff;
+    color: white;
+}
+
+.modal-actions button#cancel-size-btn {
+    background-color: #555;
+    color: #f0f0f0;
+}

@@ -40,10 +40,48 @@
                     </div>
                 </div>
             </div>
+            <div class="tool-section">
+                <h3>Lienzo</h3>
+                <button id="set-size-btn">Definir Tamaño</button>
+            </div>
+            <div class="tool-section">
+                <h3>Efecto Cebolla</h3>
+                <div class="onion-skin-controls">
+                    <label>
+                        <input type="checkbox" id="onion-skin-guide"> Guía
+                    </label>
+                    <label>
+                        <input type="checkbox" id="onion-skin-copy"> Copiar y Borrar
+                    </label>
+                </div>
+            </div>
         </aside>
         <main class="canvas-container">
-            <canvas id="main-canvas"></canvas>
+            <div class="canvas-wrapper">
+                <canvas id="onion-skin-canvas"></canvas>
+                <canvas id="main-canvas"></canvas>
+                <canvas id="guide-canvas"></canvas>
+            </div>
         </main>
+
+        <!-- Modal para Definir Tamaño -->
+        <div id="size-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content">
+                <h3>Definir Tamaño del Fotograma</h3>
+                <p>Introduce las dimensiones en píxeles.</p>
+                <div class="modal-inputs">
+                    <label for="frame-width">Ancho:</label>
+                    <input type="number" id="frame-width" value="32" min="1">
+                    <label for="frame-height">Alto:</label>
+                    <input type="number" id="frame-height" value="32" min="1">
+                </div>
+                <div class="modal-actions">
+                    <button id="save-size-btn">Guardar</button>
+                    <button id="cancel-size-btn">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
         <footer class="timeline-panel">
             <button id="toggle-timeline-btn" class="timeline-toggle">▼</button>
             <div class="timeline-controls">

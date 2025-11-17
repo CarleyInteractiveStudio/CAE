@@ -109,14 +109,87 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     renderSavedColors();
 
-    // --- Lienzo de Dibujo ---
+    // --- Lienzo de Dibujo y Ayuda de Tamaño ---
     const canvas = document.getElementById('main-canvas');
     const ctx = canvas.getContext('2d');
+    const guideCanvas = document.getElementById('guide-canvas');
+    const guideCtx = guideCanvas.getContext('2d');
+    const onionSkinCanvas = document.getElementById('onion-skin-canvas');
+    const onionSkinCtx = onionSkinCanvas.getContext('2d');
     let isDrawing = false;
+
+    // Controles de Efecto Cebolla
+    const onionSkinGuideCheck = document.getElementById('onion-skin-guide');
+    const onionSkinCopyCheck = document.getElementById('onion-skin-copy');
+
+    let frameWidth = 700;
+    let frameHeight = 700;
+
+    // Elementos del Modal de Tamaño
+    const setSizeBtn = document.getElementById('set-size-btn');
+    const sizeModal = document.getElementById('size-modal');
+    const saveSizeBtn = document.getElementById('save-size-btn');
+    const cancelSizeBtn = document.getElementById('cancel-size-btn');
+    const frameWidthInput = document.getElementById('frame-width');
+    const frameHeightInput = document.getElementById('frame-height');
+
+    function drawSizeGuide() {
+        guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+
+        if (frameWidth === 700 && frameHeight === 700) {
+            return; // No dibujar guía si es el tamaño completo
+        }
+
+        const canvasWidth = guideCanvas.width;
+        const canvasHeight = guideCanvas.height;
+
+        let guideW, guideH;
+        const aspectRatio = frameWidth / frameHeight;
+        const canvasAspectRatio = canvasWidth / canvasHeight;
+
+        if (aspectRatio > canvasAspectRatio) {
+            guideW = canvasWidth * 0.9;
+            guideH = guideW / aspectRatio;
+        } else {
+            guideH = canvasHeight * 0.9;
+            guideW = guideH * aspectRatio;
+        }
+
+        const guideX = (canvasWidth - guideW) / 2;
+        const guideY = (canvasHeight - guideH) / 2;
+
+        guideCtx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        guideCtx.setLineDash([5, 5]);
+        guideCtx.lineWidth = 1;
+        guideCtx.strokeRect(guideX, guideY, guideW, guideH);
+        guideCtx.setLineDash([]);
+    }
+
+    setSizeBtn.addEventListener('click', () => {
+        frameWidthInput.value = frameWidth;
+        frameHeightInput.value = frameHeight;
+        sizeModal.style.display = 'flex';
+    });
+
+    cancelSizeBtn.addEventListener('click', () => {
+        sizeModal.style.display = 'none';
+    });
+
+    saveSizeBtn.addEventListener('click', () => {
+        frameWidth = parseInt(frameWidthInput.value, 10) || 700;
+        frameHeight = parseInt(frameHeightInput.value, 10) || 700;
+        drawSizeGuide();
+        sizeModal.style.display = 'none';
+    });
 
     function resizeCanvas() {
         canvas.width = 700;
         canvas.height = 700;
+        guideCanvas.width = 700;
+        guideCanvas.height = 700;
+        onionSkinCanvas.width = 700;
+        onionSkinCanvas.height = 700;
+        drawSizeGuide();
     }
 
     function startDrawing(e) {
@@ -159,6 +232,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     resizeCanvas();
 
+    // --- Efecto Cebolla (Onion Skinning) ---
+    function drawOnionSkin() {
+        onionSkinCtx.clearRect(0, 0, onionSkinCanvas.width, onionSkinCanvas.height);
+
+        if (!onionSkinGuideCheck.checked && !onionSkinCopyCheck.checked) {
+            return; // No hacer nada si ambos están desactivados
+        }
+
+        if (currentFrame > 0) {
+            const prevFrameData = frames[currentFrame - 1];
+            const img = new Image();
+            img.onload = function() {
+                onionSkinCtx.globalAlpha = 0.4;
+                onionSkinCtx.drawImage(img, 0, 0);
+                onionSkinCtx.globalAlpha = 1.0;
+            };
+            img.src = prevFrameData;
+        }
+    }
+
+    onionSkinGuideCheck.addEventListener('change', drawOnionSkin);
+    onionSkinCopyCheck.addEventListener('change', drawOnionSkin);
+
+
     // --- Línea de Tiempo ---
     const timelinePanel = document.querySelector('.timeline-panel');
     const toggleTimelineBtn = document.getElementById('toggle-timeline-btn');
@@ -180,25 +277,63 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     function saveCurrentFrame() {
-        if (currentFrame >= 0) frames[currentFrame] = canvas.toDataURL();
+        if (currentFrame < 0) return;
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = frameWidth;
+        tempCanvas.height = frameHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+
+        // Calcular las dimensiones del área de recorte basado en la guía
+        const guideW = canvas.width * 0.9;
+        const guideH = guideW / (frameWidth / frameHeight);
+        const guideX = (canvas.width - guideW) / 2;
+        const guideY = (canvas.height - guideH) / 2;
+
+        // Dibujar la sección del lienzo principal en el lienzo temporal, redimensionando
+        tempCtx.drawImage(canvas, guideX, guideY, guideW, guideH, 0, 0, frameWidth, frameHeight);
+
+        frames[currentFrame] = tempCanvas.toDataURL();
     }
     function selectFrame(index) {
         saveCurrentFrame();
         currentFrame = index;
+
         const img = new Image();
         img.onload = function() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0);
+            drawOnionSkin(); // Dibujar el efecto cebolla después de cargar el fotograma
         }
         img.src = frames[index];
         renderFrames();
     }
+
     function addNewFrame() {
         saveCurrentFrame();
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        frames.push(canvas.toDataURL());
-        currentFrame = frames.length - 1;
-        renderFrames();
+
+        const prevFrameData = (currentFrame >= 0) ? frames[currentFrame] : null;
+
+        if (onionSkinCopyCheck.checked && prevFrameData) {
+            // Modo "Copiar y Borrar": El nuevo fotograma es una copia del anterior
+            const img = new Image();
+            img.onload = function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                frames.push(canvas.toDataURL());
+                currentFrame = frames.length - 1;
+                renderFrames();
+                drawOnionSkin();
+            };
+            img.src = prevFrameData;
+        } else {
+            // Modo normal o "Guía": El nuevo fotograma está en blanco
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            frames.push(canvas.toDataURL());
+            currentFrame = frames.length - 1;
+            renderFrames();
+            drawOnionSkin();
+        }
     }
     addFrameBtn.addEventListener('click', addNewFrame);
 
