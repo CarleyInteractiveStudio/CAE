@@ -1,7 +1,6 @@
 // Creative Animation - Editor Script
 document.addEventListener('DOMContentLoaded', async () => {
     // --- Configuración Inicial y Carga de Proyecto ---
-    // (Esta parte no cambia)
     let configHandle = null;
     let savedColors = [];
     const urlParams = new URLSearchParams(window.location.search);
@@ -12,17 +11,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     document.title = `${projectName} - Creative Animation`;
+
     async function loadProject() {
         try {
-            const rootDirHandle = await getDirectoryHandle();
+            const rootDirHandle = await getDirectoryHandle(); // Usar IndexedDB
             if (!rootDirHandle) {
-                alert("No se encontró la carpeta de proyectos.");
-                window.location.href = 'index.html';
+                // alert("No se encontró la carpeta de proyectos. Por favor, crea un proyecto primero.");
+                // window.location.href = 'index.html';
+                console.log("Modo de prueba: No se encontró el handle, continuando sin cargar proyecto.");
                 return;
             }
             if (await rootDirHandle.queryPermission({ mode: 'readwrite' }) !== 'granted') {
                 if (await rootDirHandle.requestPermission({ mode: 'readwrite' }) !== 'granted') {
-                    alert("No se tienen permisos.");
+                    alert("No se tienen permisos para acceder a la carpeta del proyecto.");
                     window.location.href = 'index.html';
                     return;
                 }
@@ -41,6 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = 'index.html';
         }
     }
+
     async function saveConfig() {
         if (!configHandle) return;
         try {
@@ -48,8 +50,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const config = { savedColors };
             await writable.write(JSON.stringify(config, null, 2));
             await writable.close();
-        } catch (error) { console.error("Error al guardar la configuración:", error); }
+        } catch (error) {
+            console.error("Error al guardar la configuración:", error);
+        }
     }
+
     await loadProject();
 
     // --- Panel de Herramientas ---
@@ -84,7 +89,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         brushOpacityValue.textContent = brushOpacity;
     });
 
-    // (Lógica de la paleta de colores no cambia)
     function renderSavedColors() {
         savedColorsGrid.innerHTML = '';
         savedColors.forEach(color => {
@@ -111,8 +115,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let isDrawing = false;
 
     function resizeCanvas() {
-        canvas.width = 800;
-        canvas.height = 600;
+        canvas.width = 700;
+        canvas.height = 700;
     }
 
     function startDrawing(e) {
@@ -127,11 +131,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function draw(e) {
         if (!isDrawing) return;
-
         ctx.lineWidth = brushSize;
         ctx.lineCap = 'round';
         ctx.globalAlpha = brushOpacity;
-
         if (activeTool === 'eraser') {
             ctx.globalCompositeOperation = 'destination-out';
             ctx.strokeStyle = 'rgba(0,0,0,1)';
@@ -139,12 +141,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             ctx.globalCompositeOperation = 'source-over';
             ctx.strokeStyle = colorPicker.value;
             if (activeTool === 'marker') {
-                 ctx.globalAlpha = 0.3; // Opacidad especial para el marcador
+                 ctx.globalAlpha = 0.3;
             } else if (activeTool === 'pencil') {
-                ctx.lineWidth = 1; // Lápiz siempre fino
+                ctx.lineWidth = 1;
             }
         }
-
         ctx.lineTo(e.offsetX, e.offsetY);
         ctx.stroke();
         ctx.beginPath();
