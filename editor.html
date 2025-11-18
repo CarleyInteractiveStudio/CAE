@@ -10,12 +10,21 @@
     <div class="editor-container">
         <aside class="toolbar-panel">
             <div class="tool-section">
+                <h3>Modo de Animación</h3>
+                <div class="mode-selector">
+                    <button class="mode-btn selected" data-mode="draw">Por Dibujo</button>
+                    <button class="mode-btn" data-mode="parts">Por Partes</button>
+                    <button class="mode-btn" data-mode="bone" disabled>Por Hueso</button>
+                </div>
+            </div>
+            <div class="tool-section">
                 <h3>Herramientas</h3>
                 <div class="tools">
                     <button class="tool-btn selected" data-tool="brush">Pincel</button>
                     <button class="tool-btn" data-tool="marker">Marcador</button>
                     <button class="tool-btn" data-tool="pencil">Lápiz</button>
                     <button class="tool-btn" data-tool="eraser">Borrador</button>
+                    <button class="tool-btn" data-tool="lasso" style="display: none;">Lazo</button>
                 </div>
             </div>
             <div class="tool-section">
@@ -39,6 +48,13 @@
                         <button id="save-color-btn">+</button>
                     </div>
                 </div>
+            </div>
+            <div class="tool-section" id="parts-panel" style="display: none;">
+                <h3>Partes del Dibujo</h3>
+                <div class="parts-grid-container">
+                    <div id="parts-grid"></div>
+                </div>
+                <button id="save-part-btn">Guardar Parte</button>
             </div>
             <div class="tool-section">
                 <h3>Lienzo</h3>

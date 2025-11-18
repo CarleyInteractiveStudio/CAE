@@ -57,6 +57,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await loadProject();
 
+    // --- Modo de Animación ---
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    const partsPanel = document.getElementById('parts-panel');
+    const lassoToolBtn = document.querySelector('.tool-btn[data-tool="lasso"]');
+    let animationMode = 'draw'; // 'draw', 'parts', or 'bone'
+
+    function setAnimationMode(newMode) {
+        animationMode = newMode;
+        modeBtns.forEach(btn => {
+            btn.classList.toggle('selected', btn.dataset.mode === newMode);
+        });
+
+        // Mostrar u ocultar UI específica del modo
+        const drawTools = document.querySelector('.tools');
+        partsPanel.style.display = newMode === 'parts' ? 'block' : 'none';
+
+        // Ocultar herramientas de dibujo y mostrar lazo, o viceversa
+        drawTools.querySelectorAll('.tool-btn:not([data-tool="lasso"])').forEach(btn => {
+            btn.style.display = newMode === 'draw' ? 'inline-block' : 'none';
+        });
+        lassoToolBtn.style.display = newMode === 'parts' ? 'inline-block' : 'none';
+
+        // Si cambiamos a un modo que no es "parts", deseleccionamos el lazo
+        if (newMode !== 'parts' && activeTool === 'lasso') {
+            document.querySelector('.tool-btn[data-tool="brush"]').click();
+        }
+    }
+
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (!btn.disabled) {
+                setAnimationMode(btn.dataset.mode);
+            }
+        });
+    });
+
     // --- Panel de Herramientas ---
     const toolBtns = document.querySelectorAll('.tool-btn');
     const colorPicker = document.getElementById('color-picker');
@@ -117,10 +153,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const onionSkinCanvas = document.getElementById('onion-skin-canvas');
     const onionSkinCtx = onionSkinCanvas.getContext('2d');
     let isDrawing = false;
+    let lassoPoints = [];
 
     // Controles de Efecto Cebolla
     const onionSkinGuideCheck = document.getElementById('onion-skin-guide');
     const onionSkinCopyCheck = document.getElementById('onion-skin-copy');
+
+    // --- Panel de Partes ---
+    const partsGrid = document.getElementById('parts-grid');
+    const savePartBtn = document.getElementById('save-part-btn');
+    let savedParts = [];
 
     let frameWidth = 600;
     let frameHeight = 600;
@@ -194,16 +236,47 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function startDrawing(e) {
         isDrawing = true;
-        draw(e);
+        if (activeTool === 'lasso') {
+            lassoPoints = [{ x: e.offsetX, y: e.offsetY }];
+            guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+        } else {
+            draw(e);
+        }
     }
 
     function stopDrawing() {
         isDrawing = false;
-        ctx.beginPath();
+        if (activeTool === 'lasso' && lassoPoints.length > 1) {
+            // Cierra el lazo
+            guideCtx.beginPath();
+            guideCtx.moveTo(lassoPoints[0].x, lassoPoints[0].y);
+            lassoPoints.forEach(p => guideCtx.lineTo(p.x, p.y));
+            guideCtx.closePath();
+            guideCtx.strokeStyle = 'rgba(0, 122, 255, 0.8)';
+            guideCtx.setLineDash([2, 2]);
+            guideCtx.stroke();
+            console.log("Lasso selection complete.", lassoPoints);
+            // Pass the points to the save function, don't clear them here
+        } else {
+            ctx.beginPath();
+        }
     }
 
     function draw(e) {
         if (!isDrawing) return;
+
+        if (activeTool === 'lasso') {
+            lassoPoints.push({ x: e.offsetX, y: e.offsetY });
+            guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+            guideCtx.beginPath();
+            guideCtx.moveTo(lassoPoints[0].x, lassoPoints[0].y);
+            lassoPoints.forEach(p => guideCtx.lineTo(p.x, p.y));
+            guideCtx.strokeStyle = 'rgba(0, 122, 255, 0.8)';
+            guideCtx.setLineDash([2, 2]);
+            guideCtx.stroke();
+            return;
+        }
+
         ctx.lineWidth = brushSize;
         ctx.lineCap = 'round';
         ctx.globalAlpha = brushOpacity;
@@ -230,7 +303,107 @@ document.addEventListener('DOMContentLoaded', async () => {
     canvas.addEventListener('mouseout', stopDrawing);
     canvas.addEventListener('mousemove', draw);
 
+    // Drag and Drop de Partes
+    canvas.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+
+    canvas.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const partDataURL = e.dataTransfer.getData('text/plain');
+        if (partDataURL) {
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, e.offsetX - img.width / 2, e.offsetY - img.height / 2);
+            };
+            img.src = partDataURL;
+        }
+    });
+
     resizeCanvas();
+
+    // --- Lógica de Partes ---
+    function renderSavedParts() {
+        partsGrid.innerHTML = '';
+        savedParts.forEach((partDataURL, index) => {
+            const partPreview = document.createElement('div');
+            partPreview.className = 'part-preview';
+            partPreview.draggable = true;
+            partPreview.dataset.partIndex = index;
+
+            const img = document.createElement('img');
+            img.src = partDataURL;
+            partPreview.appendChild(img);
+
+            partPreview.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', partDataURL);
+            });
+
+            partsGrid.appendChild(partPreview);
+        });
+    }
+
+    function saveSelectedPart(points) {
+        if (points.length < 3) return;
+
+        // Crear un canvas temporal para la parte cortada
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+
+        // Encontrar los límites de la selección del lazo
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        points.forEach(p => {
+            minX = Math.min(minX, p.x);
+            minY = Math.min(minY, p.y);
+            maxX = Math.max(maxX, p.x);
+            maxY = Math.max(maxY, p.y);
+        });
+
+        const partWidth = maxX - minX;
+        const partHeight = maxY - minY;
+
+        if (partWidth <= 0 || partHeight <= 0) return;
+
+        tempCanvas.width = partWidth;
+        tempCanvas.height = partHeight;
+
+        // Dibujar la selección en el canvas temporal
+        tempCtx.beginPath();
+        tempCtx.moveTo(points[0].x - minX, points[0].y - minY);
+        points.forEach(p => tempCtx.lineTo(p.x - minX, p.y - minY));
+        tempCtx.closePath();
+
+        // Usar la selección como máscara de recorte
+        tempCtx.clip();
+
+        // Dibujar la imagen del lienzo principal en el lienzo temporal
+        tempCtx.drawImage(canvas, -minX, -minY);
+
+        // Guardar la parte
+        savedParts.push(tempCanvas.toDataURL());
+        renderSavedParts();
+
+        // Opcional: Borrar la parte del lienzo principal
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        points.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fill();
+        ctx.restore();
+
+        // Limpiar selección del lazo
+        lassoPoints = [];
+        guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+    }
+
+    savePartBtn.addEventListener('click', () => {
+        if (lassoPoints.length > 2) {
+            saveSelectedPart(lassoPoints);
+        }
+    });
+
 
     // --- Efecto Cebolla (Onion Skinning) ---
     function drawOnionSkin() {
