@@ -122,8 +122,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const onionSkinGuideCheck = document.getElementById('onion-skin-guide');
     const onionSkinCopyCheck = document.getElementById('onion-skin-copy');
 
-    let frameWidth = 700;
-    let frameHeight = 700;
+    let frameWidth = 600;
+    let frameHeight = 600;
 
     // Elementos del Modal de Tamaño
     const setSizeBtn = document.getElementById('set-size-btn');
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function drawSizeGuide() {
         guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
 
-        if (frameWidth === 700 && frameHeight === 700) {
+        if (frameWidth === 600 && frameHeight === 600) {
             return; // No dibujar guía si es el tamaño completo
         }
 
@@ -176,19 +176,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     saveSizeBtn.addEventListener('click', () => {
-        frameWidth = parseInt(frameWidthInput.value, 10) || 700;
-        frameHeight = parseInt(frameHeightInput.value, 10) || 700;
+        frameWidth = parseInt(frameWidthInput.value, 10) || 600;
+        frameHeight = parseInt(frameHeightInput.value, 10) || 600;
         drawSizeGuide();
         sizeModal.style.display = 'none';
     });
 
     function resizeCanvas() {
-        canvas.width = 700;
-        canvas.height = 700;
-        guideCanvas.width = 700;
-        guideCanvas.height = 700;
-        onionSkinCanvas.width = 700;
-        onionSkinCanvas.height = 700;
+        canvas.width = 600;
+        canvas.height = 600;
+        guideCanvas.width = 600;
+        guideCanvas.height = 600;
+        onionSkinCanvas.width = 600;
+        onionSkinCanvas.height = 600;
         drawSizeGuide();
     }
 

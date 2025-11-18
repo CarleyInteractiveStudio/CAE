@@ -37,8 +37,8 @@ body {
 
 .canvas-wrapper {
     position: relative;
-    width: 700px;
-    height: 700px;
+    width: 600px;
+    height: 600px;
 }
 
 #main-canvas, #guide-canvas, #onion-skin-canvas {
