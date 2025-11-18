@@ -6,8 +6,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const projectName = urlParams.get('project');
     if (!projectName) {
-        alert("No se ha especificado un proyecto.");
-        window.location.href = 'index.html';
+        // alert("No se ha especificado un proyecto.");
+        // window.location.href = 'index.html';
         return;
     }
     document.title = `${projectName} - Creative Animation`;
@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modeBtns = document.querySelectorAll('.mode-btn');
     const partsPanel = document.getElementById('parts-panel');
     const lassoToolBtn = document.querySelector('.tool-btn[data-tool="lasso"]');
+    const boneToolsPanel = document.getElementById('bone-tools');
     let animationMode = 'draw'; // 'draw', 'parts', or 'bone'
 
     function setAnimationMode(newMode) {
@@ -69,19 +70,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.classList.toggle('selected', btn.dataset.mode === newMode);
         });
 
-        // Mostrar u ocultar UI específica del modo
+        // Paneles y herramientas
         const drawTools = document.querySelector('.tools');
-        partsPanel.style.display = newMode === 'parts' ? 'block' : 'none';
 
-        // Ocultar herramientas de dibujo y mostrar lazo, o viceversa
+        // Ocultar todo por defecto y luego mostrar lo necesario
+        partsPanel.style.display = 'none';
+        boneToolsPanel.style.display = 'none';
+        lassoToolBtn.style.display = 'none';
         drawTools.querySelectorAll('.tool-btn:not([data-tool="lasso"])').forEach(btn => {
-            btn.style.display = newMode === 'draw' ? 'inline-block' : 'none';
+            btn.style.display = 'none';
         });
-        lassoToolBtn.style.display = newMode === 'parts' ? 'inline-block' : 'none';
 
-        // Si cambiamos a un modo que no es "parts", deseleccionamos el lazo
-        if (newMode !== 'parts' && activeTool === 'lasso') {
-            document.querySelector('.tool-btn[data-tool="brush"]').click();
+        if (newMode === 'draw') {
+            drawTools.querySelectorAll('.tool-btn:not([data-tool="lasso"])').forEach(btn => {
+                btn.style.display = 'inline-block';
+            });
+        } else if (newMode === 'parts') {
+            partsPanel.style.display = 'block';
+            lassoToolBtn.style.display = 'inline-block';
+        } else if (newMode === 'bone') {
+            boneToolsPanel.style.display = 'block';
+        }
+
+        // Resetear la herramienta activa si ya no está disponible
+        const activeToolBtn = document.querySelector(`.tool-btn[data-tool="${activeTool}"]`);
+        if (activeToolBtn && activeToolBtn.style.display === 'none') {
+            if (newMode === 'draw') {
+                document.querySelector('.tool-btn[data-tool="brush"]').click();
+            } else {
+                // No hay herramienta por defecto en los otros modos todavía
+                activeTool = null;
+                 toolBtns.forEach(b => b.classList.remove('selected'));
+            }
         }
     }
 
@@ -106,12 +126,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     let activeTool = 'brush';
     let brushSize = 2;
     let brushOpacity = 1.0;
+    let isCreatingBone = false;
 
     toolBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            toolBtns.forEach(b => b.classList.remove('selected'));
+            // Allow selecting tools from different panels
+            if (!btn.parentElement.parentElement.matches('#bone-tools')) {
+                document.querySelectorAll('#bone-tools .tool-btn').forEach(b => b.classList.remove('selected'));
+            }
+            if (!btn.parentElement.matches('.tools')) {
+                 document.querySelectorAll('.tools .tool-btn').forEach(b => b.classList.remove('selected'));
+            }
+
             btn.classList.add('selected');
             activeTool = btn.dataset.tool;
+            console.log("Active tool:", activeTool);
         });
     });
 
@@ -154,6 +183,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     const onionSkinCtx = onionSkinCanvas.getContext('2d');
     let isDrawing = false;
     let lassoPoints = [];
+    let bones = [];
+    let selectedBone = null;
+
+    function findClosestJoint(x, y, maxDist = 10) {
+        let closest = null;
+        let minDist = maxDist;
+
+        bones.forEach(bone => {
+            let d1 = Math.hypot(x - bone.x1, y - bone.y1);
+            if (d1 < minDist) {
+                minDist = d1;
+                closest = { x: bone.x1, y: bone.y1 };
+            }
+            let d2 = Math.hypot(x - bone.x2, y - bone.y2);
+            if (d2 < minDist) {
+                minDist = d2;
+                closest = { x: bone.x2, y: bone.y2 };
+            }
+        });
+
+        return closest;
+    }
 
     // Controles de Efecto Cebolla
     const onionSkinGuideCheck = document.getElementById('onion-skin-guide');
@@ -234,17 +285,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         drawSizeGuide();
     }
 
+
     function startDrawing(e) {
-        isDrawing = true;
-        if (activeTool === 'lasso') {
-            lassoPoints = [{ x: e.offsetX, y: e.offsetY }];
-            guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+        if (activeTool === 'add-bone') {
+            const startPoint = findClosestJoint(e.offsetX, e.offsetY) || { x: e.offsetX, y: e.offsetY };
+            if (!isCreatingBone) {
+                isCreatingBone = { x1: startPoint.x, y1: startPoint.y, x2: e.offsetX, y2: e.offsetY };
+            } else {
+                isCreatingBone.x2 = startPoint.x;
+                isCreatingBone.y2 = startPoint.y;
+                bones.push(isCreatingBone);
+                isCreatingBone = false;
+                drawBones();
+            }
         } else {
-            draw(e);
+            isDrawing = true;
+            if (activeTool === 'lasso') {
+                lassoPoints = [{ x: e.offsetX, y: e.offsetY }];
+                guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+            } else {
+                draw(e);
+            }
         }
     }
 
-    function stopDrawing() {
+    function stopDrawing(e) {
         isDrawing = false;
         if (activeTool === 'lasso' && lassoPoints.length > 1) {
             // Cierra el lazo
@@ -256,10 +321,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             guideCtx.setLineDash([2, 2]);
             guideCtx.stroke();
             console.log("Lasso selection complete.", lassoPoints);
-            // Pass the points to the save function, don't clear them here
         } else {
             ctx.beginPath();
         }
+    }
+
+    function drawBones() {
+        guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+        bones.forEach(bone => {
+            guideCtx.beginPath();
+            guideCtx.moveTo(bone.x1, bone.y1);
+            guideCtx.lineTo(bone.x2, bone.y2);
+            guideCtx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+            guideCtx.lineWidth = 3;
+            guideCtx.stroke();
+
+            // Draw joint circles
+            guideCtx.beginPath();
+            guideCtx.arc(bone.x1, bone.y1, 5, 0, 2 * Math.PI);
+            guideCtx.fillStyle = 'rgba(255, 255, 0, 0.8)';
+            guideCtx.fill();
+
+            guideCtx.beginPath();
+            guideCtx.arc(bone.x2, bone.y2, 5, 0, 2 * Math.PI);
+            guideCtx.fillStyle = 'rgba(255, 255, 0, 0.8)';
+            guideCtx.fill();
+        });
     }
 
     function draw(e) {
@@ -276,6 +363,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             guideCtx.stroke();
             return;
         }
+
+        if (activeTool === 'add-bone' && isCreatingBone) {
+            isCreatingBone.x2 = e.offsetX;
+            isCreatingBone.y2 = e.offsetY;
+            drawBones(); // Dibuja los huesos existentes
+            // Dibuja el hueso en proceso
+            guideCtx.beginPath();
+            guideCtx.moveTo(isCreatingBone.x1, isCreatingBone.y1);
+            guideCtx.lineTo(isCreatingBone.x2, isCreatingBone.y2);
+            guideCtx.strokeStyle = 'rgba(255, 0, 0, 0.5)'; // Translúcido mientras se dibuja
+            guideCtx.lineWidth = 3;
+            guideCtx.stroke();
+            return;
+        }
+
+        if (!isDrawing) return;
 
         ctx.lineWidth = brushSize;
         ctx.lineCap = 'round';
